@@ -9,18 +9,9 @@
 #ifndef RILL_SYNTAX_ANALYSIS_PARSER_HELPER_HPP
 #define RILL_SYNTAX_ANALYSIS_PARSER_HELPER_HPP
 
-#include <string>
-#include <vector>
 #include <memory>
-#include <iostream>
 
-#define BOOST_SPIRIT_USE_PHOENIX_V3 1
-#include <boost/spirit/include/phoenix_core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/phoenix_object.hpp>
-#include <boost/spirit/include/phoenix_fusion.hpp>
-#include <boost/spirit/include/phoenix_stl.hpp>
-#include <boost/spirit/include/phoenix_bind.hpp>
+#include <boost/phoenix/function.hpp>
 
 #include "../ast/value.hpp"
 #include "../ast/expression.hpp"

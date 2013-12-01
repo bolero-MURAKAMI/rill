@@ -15,18 +15,21 @@
 #include <iostream>
 
 #define BOOST_SPIRIT_USE_PHOENIX_V3 1
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/qi_as.hpp>
+#include <boost/spirit/home/x3.hpp>
+#include <boost/mpl/identity.hpp>
+//#include <boost/spirit/include/qi.hpp>
+//#include <boost/spirit/include/qi_as.hpp>
+
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/adapted/std_tuple.hpp>
-
+/*
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/phoenix_object.hpp>
 #include <boost/spirit/include/phoenix_fusion.hpp>
 #include <boost/spirit/include/phoenix_stl.hpp>
 #include <boost/spirit/include/phoenix_bind.hpp>
-
+*/
 #include "../ast/value.hpp"
 #include "../ast/expression.hpp"
 #include "../ast/statement.hpp"
@@ -35,45 +38,151 @@
 #include "../attribute/attribute.hpp"
 
 //#include "environment.hpp"
-#include "skip_parser.hpp"
+//#include "skip_parser.hpp"
 
-#include "parser_helper.hpp"
+//#include "parser_helper.hpp"
 
+
+class program {};
+class top_level_statements {};
+class empty_statement {};
+class statement_termination {};
 
 namespace rill
 {
     namespace syntax_analysis
     {
-        namespace fusion = boost::fusion;
-        namespace phx = boost::phoenix;
-        namespace qi = boost::spirit::qi;
-        namespace ascii = boost::spirit::ascii;
+        //namespace fusion = boost::fusion;
+        //namespace phx = boost::phoenix;
 
-        //
-        // grammer definition of Rill
-        //
-        template<typename StringT, typename Iterator>
-        class code_grammer
-            : public qi::grammar<Iterator, ast::statement_list(), skip_grammer<Iterator>>
+        namespace x3 = boost::spirit::x3;
+        namespace ascii = boost::spirit::x3::ascii;
+        //namespace qi = boost::spirit::qi;
+        //namespace ascii = boost::spirit::ascii;
+
+        namespace grammer
         {
-        public:
-            using skip_grammer_type = skip_grammer<Iterator>;
-            using rule_no_skip_no_type = qi::rule<Iterator>;
-            template<typename T> using rule_no_skip = qi::rule<Iterator, T>;
-            template<typename T> using rule = qi::rule<Iterator, T, skip_grammer_type>;
+            //using ascii::char_;
+            //using ascii::string;
+            //using x3::labels;
 
-        public:
-            code_grammer()
-                : code_grammer::base_type( program_, "rill" )
-            {
-                using ascii::char_;
-                using ascii::string;
-                using namespace qi::labels;
+            x3::rule<program, ast::statement_list> const program("program");
+            x3::rule<top_level_statements, ast::statement_list> const top_level_statements("top_level_statements");
+            x3::rule<empty_statement, ast::empty_statement_ptr> const empty_statement("");
+            x3::rule<statement_termination> const statement_termination("");
+
+
+            auto const program_def
+                 = ( top_level_statements > ( x3::eol | x3::eoi ) )
+                 ;
+
+
+            auto const top_level_statements_def
+                 = *( empty_statement )
+                 ;
+
+            auto const empty_statement_def
+                = statement_termination
+                ;
+                
+                /*[
+                []( decltype(empty_statement)::context& ctx, ast::empty_statement_ptr const& ) {
+                    ctx.val = std::make_shared<ast::empty_statement>();
+                }]
+                ;*/
+                 
+            auto const statement_termination_def
+                = x3::lit( ';' );
+
+
+
+            auto const rill_parser = x3::grammar(
+                "rill",
+                program = program_def,
+                top_level_statements = top_level_statements_def,
+                empty_statement = empty_statement_def,
+                statement_termination = statement_termination_def
+                );
+        } // namespace grammer
+
+        using grammer::rill_parser;
+    }
+}
+
+#if 0
+/*
+            rule<ast::statement_list()> program_;
+
+            rule<ast::statement_list()> top_level_statements_, function_body_statements_;
+            rule<ast::statement_list()> function_body_block_, function_body_expression_;
+
+
+            rule<ast::function_definition_statement_ptr()> function_definition_statement_;
+            rule<ast::variable_declaration_statement_ptr()> variable_declaration_statement_;
+            rule<ast::extern_statement_base_ptr()> extern_statement_;
+            rule<ast::extern_function_declaration_statement_ptr()> extern_function_declaration_statement_;
+            rule<ast::return_statement_ptr()> return_statement_;
+            rule<ast::expression_statement_ptr()> expression_statement_;
+            rule<ast::empty_statement_ptr()> empty_statement_;
+
+            // test
+            rule<ast::test_while_statement_ptr()> while_statement_;
+
+            rule<attribute::type_attributes_optional()> type_attributes_;
+
+            rule<attribute::quality_kind()> quality_specifier_;
+            rule<attribute::modifiability_kind()> modifiability_specifier_;
+
+
+            rule<ast::variable_declaration()> variable_declaration_;
+            rule<ast::variable_declaration_unit()> variable_initializer_unit_;
+            rule<ast::variable_declaration_unit_list()> variable_initializer_unit_list_;
+
+            rule<ast::variable_declaration()> parameter_variable_declaration_;
+            rule<ast::variable_declaration_unit()> parameter_variable_initializer_unit_;
+
+            rule<ast::parameter_list()> parameter_variable_declaration_list_;
+
+            rule<ast::value_initializer_unit()> value_initializer_unit_;
+            rule<ast::type_expression_ptr()> type_specifier_;
+
+            static std::size_t const ExpressionHierarchyNum = 6;
+            rule<ast::expression_ptr()> expression_, expression_priority_[ExpressionHierarchyNum];
+            rule<ast::expression_list()> argument_list_;
+            rule<ast::call_expression_ptr()> call_expression_;
+            rule<ast::term_expression_ptr()> term_expression_;
+
+
+            rule<ast::type_expression_ptr()> type_expression_;
+            rule<ast::type_identifier_expression_ptr()> type_identifier_expression_;
+            rule<ast::compiletime_return_type_expression_ptr()> compiletime_return_type_expression_;
+
+
+            rule<ast::variable_value_ptr()> variable_value_;
+
+            rule<ast::intrinsic_value_ptr()> integer_literal_;
+            rule<ast::intrinsic_value_ptr()> boolean_literal_;
+            rule<ast::intrinsic_value_ptr()> string_literal_;
+
+            rule<ast::intrinsic::identifier_value_ptr()> identifier_;
+            rule<ast::intrinsic::single_identifier_value_ptr()> single_identifier_;
+
+            rule_no_skip<ast::intrinsic::symbol_value_ptr()> native_symbol_;
+            rule_no_skip<ast::native_string_t()> native_symbol_string_;
+
+            rule_no_skip<ast::native_string_t()> string_literal_sequenece_;
+
+
+            rule_no_skip<char()> escape_sequence_;
+
+            rule_no_skip_no_type statement_termination_;
+*/
+
 
                 //
                 //program_.name( "program" );
-//                program_ %= top_level_statements_ > ( qi::eol | qi::eoi );// 
-                program_ = ( top_level_statements_ > ( qi::eol | qi::eoi ) );//[qi::_val = qi::_1];// 
+                //                program_ %= top_level_statements_ > ( qi::eol | qi::eoi );// 
+                  program_ = ( top_level_statements_ > ( qi::eol | qi::eoi ) );//[qi::_val = qi::_1];// 
 
                 //
                 top_level_statements_.name( "top_level_statements" );
@@ -602,5 +711,7 @@ namespace rill
 
     } // namespace syntax_analysis
 } // namespace rill
+
+#endif
 
 #endif /*RILL_SYNTAX_ANALYSIS_PARSER_HPP*/

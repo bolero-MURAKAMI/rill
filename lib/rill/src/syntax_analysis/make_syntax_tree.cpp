@@ -7,7 +7,9 @@
 //
 
 #include <rill/syntax_analysis/make_syntax_tree.hpp>
-#include <rill/syntax_analysis/parser.hpp>
+// #include <rill/syntax_analysis/parser.hpp>
+
+#include <boost/spirit/home/x3.hpp>
 
 
 namespace rill
@@ -20,17 +22,20 @@ namespace rill
             auto first      = source.cbegin();
             auto const last = source.cend();
 
+/*
             typedef code_grammer<input_type, input_iterator>    grammer_type;
             grammer_type grammer;
             grammer_type::skip_grammer_type skipper;
-
+*/
             ast::statement_list stmts;
 
             std::cout << "!!! === !!!" << std::endl
                       << "Start to parse" << std::endl
                       << "===========" << std::endl;
 
-            bool const success = qi::phrase_parse( first, last, grammer, skipper, stmts );
+            boost::spirit::x3::ascii::space_type space;
+            bool const success = boost::spirit::x3::phrase_parse( first, last, rill_parser, space/*skipper*/, stmts );
+            //bool const success = qi::phrase_parse( first, last, grammer, skipper, stmts );
             if ( success ) {
                 std::cout << "true => " << ( first == last ) << " (1 is ok)" << std::endl;
                 if ( first != last ) {
@@ -44,7 +49,7 @@ namespace rill
 
             return std::make_shared<ast::root>( std::move( stmts ) );
         }
-        catch( qi::expectation_failure<input_iterator> const& /*e*/ )
+        catch( .../*qi::expectation_failure<input_iterator> const& /*e*/ )
         {
             ast::statement_list p;
             return std::make_shared<ast::root>( std::move( p ) /* TODO: insert error*/ );
